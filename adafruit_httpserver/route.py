@@ -87,6 +87,9 @@ class _HTTPRoutes:
     def add(self, route: _HTTPRoute, handler: Callable):
         """Adds a route and its handler to the collection."""
 
+        if not callable(handler):
+            raise ValueError("Route handlers have to be callable")
+
         self._routes.append(route)
         self._handlers.append(handler)
 
