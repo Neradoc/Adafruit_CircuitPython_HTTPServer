@@ -22,6 +22,8 @@ from .request import HTTPRequest
 from .status import HTTPStatus, CommonHTTPStatus
 from .headers import HTTPHeaders
 
+DIR_BIT = 0x4000
+FILE_BIT = 0x8000
 
 class HTTPResponse:
     """
@@ -187,10 +189,18 @@ class HTTPResponse:
         if not root_path.endswith("/"):
             root_path += "/"
         try:
-            file_length = os.stat(root_path + filename)[6]
+            path = root_path + f"/{filename}/".replace("/../","/").strip("/")
+            stat = os.stat(path)
+            file_length = stat[6]
+            is_file = stat[0] & FILE_BIT != 0
         except OSError:
             # If the file doesn't exist, return 404.
             HTTPResponse(self.request, status=CommonHTTPStatus.NOT_FOUND_404).send()
+            return
+
+        if not is_file:
+            # path is a directory
+            HTTPResponse(self.request, status=HTTPStatus(403, "Forbidden")).send()
             return
 
         self._send_headers(
