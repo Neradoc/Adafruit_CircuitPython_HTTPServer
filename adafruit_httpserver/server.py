@@ -37,7 +37,7 @@ class HTTPServer:
         self.routes = _HTTPRoutes()
         self._socket_source = socket_source
         self._sock = None
-        self.root_path = "/"
+        self.root_path = None
 
     def route(self, path: str, method: HTTPMethod = HTTPMethod.GET) -> Callable:
         """
@@ -63,7 +63,7 @@ class HTTPServer:
 
         return route_decorator
 
-    def serve_forever(self, host: str, port: int = 80, root_path: str = "") -> None:
+    def serve_forever(self, host: str, port: int = 80, root_path: str = None) -> None:
         """Wait for HTTP requests at the given host and port. Does not return.
 
         :param str host: host name or IP address
@@ -78,7 +78,7 @@ class HTTPServer:
             except OSError:
                 continue
 
-    def start(self, host: str, port: int = 80, root_path: str = "") -> None:
+    def start(self, host: str, port: int = 80, root_path: str = None) -> None:
         """
         Start the HTTP server at the given host and port. Requires calling
         poll() in a while loop to handle incoming requests.
@@ -162,14 +162,18 @@ class HTTPServer:
                     _HTTPRoute(request.path, request.method)
                 )
 
-                # If a handler for route exists and is callable, call it.
-                if handler is not None and callable(handler):
+                # If a handler for route exists, call it.
+                if handler is not None:
                     handler(request)
 
                 # If no handler exists and request method is GET, try to serve a file.
-                elif handler is None and request.method in (
-                    HTTPMethod.GET,
-                    HTTPMethod.HEAD,
+                elif (
+                    self.root_path is not None
+                    and request.method
+                    in (
+                        HTTPMethod.GET,
+                        HTTPMethod.HEAD,
+                    )
                 ):
                     filename = "index.html" if request.path == "/" else request.path
                     HTTPResponse(request).send_file(
